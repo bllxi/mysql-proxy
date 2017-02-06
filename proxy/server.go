@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/bllxi/mysql-proxy/config"
+	"github.com/bllxi/mysql-proxy/db"
 	"github.com/bllxi/mysql-proxy/mysql"
 )
 
@@ -16,6 +17,7 @@ type Server struct {
 	listener net.Listener
 	wg       sync.WaitGroup
 	closeC   chan struct{}
+	db       *db.DB
 }
 
 func (s *Server) Serve() error {
@@ -42,6 +44,7 @@ func (s *Server) Close() {
 	if s.listener != nil {
 		s.listener.Close()
 	}
+	s.db.Close()
 	close(s.closeC)
 	s.wg.Wait()
 }
@@ -85,6 +88,11 @@ func (s *Server) newClient(conn net.Conn) *Client {
 func NewServer() (*Server, error) {
 	s := new(Server)
 	s.closeC = make(chan struct{})
+
+	s.db = new(db.DB)
+	if err := s.db.Open(); err != nil {
+		return nil, err
+	}
 
 	l, err := net.Listen("tcp", config.ListenAddr)
 	if err != nil {

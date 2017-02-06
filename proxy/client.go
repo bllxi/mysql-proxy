@@ -97,10 +97,12 @@ func (c *Client) processMsg(payload []byte) error {
 	case mysql.COM_QUIT:
 		c.Close()
 		return nil
-	case mysql.COM_QUERY:
+	case mysql.COM_INIT_DB: // use db
 		sql := hack.String(data)
-		log.Printf("query sel: %s\n", sql)
-		return c.writeOK(nil)
+		return c.handleUseDB(sql)
+	case mysql.COM_QUERY: // select delete insert replace update set show truncate
+		sql := hack.String(data)
+		return c.handleQuery(sql)
 	case mysql.COM_PING:
 		return c.writeOK(nil)
 	default:
